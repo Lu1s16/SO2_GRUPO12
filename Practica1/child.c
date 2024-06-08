@@ -14,7 +14,8 @@
 
 volatile sig_atomic_t stop = 0;
 int *total_syscalls;
-int (*syscall_count)[3]; // open, read, write
+//Llevar registro del open, read, write
+int (*syscall_count)[3]; 
 
 void handle_sigint(int sig) {
     stop = 1;

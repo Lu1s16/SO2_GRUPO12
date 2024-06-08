@@ -17,12 +17,13 @@
 // Variables globales
 volatile sig_atomic_t stop = 0;
 int *total_syscalls;
-int (*syscall_count)[3]; // open, read, write
+//Llevar registro del open, read, write
+int (*syscall_count)[3]; 
 
 void handle_sigint(int sig) {
     stop = 1;
 }
-
+//Registro de los logs
 void log_syscall(pid_t pid, const char* syscall) {
     FILE *log = fopen(LOG_FILE, "a");
     if (log) {
@@ -39,15 +40,15 @@ void log_syscall(pid_t pid, const char* syscall) {
 int main() {
     signal(SIGINT, handle_sigint);
 
-    // Limpia el archivo de registro
+    // Limpia el archivo 
     FILE *log = fopen(LOG_FILE, "w");
     if (log) fclose(log);
 
-    // Limpia el archivo de datos
+    // Limpia el archivo 
     FILE *data = fopen(DATA_FILE, "w");
     if (data) fclose(data);
 
-    // Crear memoria compartida
+    // Crear memoria compartida e inicializa contadores
     int shm_fd = shm_open("/shm_syscall", O_CREAT | O_RDWR, 0666);
     ftruncate(shm_fd, sizeof(int) + sizeof(int[3]));
     void *ptr = mmap(0, sizeof(int) + sizeof(int[3]), PROT_WRITE, MAP_SHARED, shm_fd, 0);
@@ -62,10 +63,10 @@ int main() {
     
     for (int i = 0; i < 2; ++i) {
         if ((pids[i] = fork()) == 0) {
-            
             char id_str[10];
             snprintf(id_str, sizeof(id_str), "%d", i);
-            execl("./child", "./child", id_str, NULL);  // Ejecutar el código del hijo
+            //Ejecuta el codigo del proceso hijo 
+            execl("./child", "./child", id_str, NULL);
             perror("exec failed");
             exit(1);
         }
