@@ -7,7 +7,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <string.h>
-#include <signal.h> // Incluye signal.h para sig_atomic_t y SIGINT
+#include <signal.h>
 
 #define DATA_FILE "practica1.txt"
 #define CARACTERES 9
