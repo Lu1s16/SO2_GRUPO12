@@ -13,7 +13,6 @@
 // Archivos
 #define LOG_FILE "syscalls.log"
 #define DATA_FILE "practica1.txt"
-#define CARACTERES 9
 
 // Variables globales
 volatile sig_atomic_t stop = 0;
@@ -35,46 +34,6 @@ void log_syscall(pid_t pid, const char* syscall) {
                 t->tm_hour, t->tm_min, t->tm_sec);
         fclose(log);
     }
-}
-
-void child_process(int id) {
-    srand(time(NULL) ^ (getpid()<<16));
-    int fd = open(DATA_FILE, O_RDWR | O_CREAT | O_APPEND, 0666); // Open in append mode
-    if (fd == -1) {
-        perror("Error opening file");
-        exit(1);
-    }
-    log_syscall(getpid(), "open");
-    (*total_syscalls)++;
-    (*syscall_count)[0]++;
-
-    while (!stop) {
-        int action = rand() % 3;
-        int delay = 1 + rand() % 3;
-        sleep(delay);
-
-        if (action == 0) { // Read
-            char buffer[9];
-            lseek(fd, 0, SEEK_SET);
-            read(fd, buffer, 8);
-            buffer[8] = '\0';
-            log_syscall(getpid(), "read");
-            (*total_syscalls)++;
-            (*syscall_count)[1]++;
-        } else if (action == 1) { // Write
-            char line[CARACTERES];
-            for (int i = 0; i < CARACTERES - 1; i++) {
-                line[i] = 'A' + rand() % 26;
-            }
-            line[8] = '\n';
-            write(fd, line, CARACTERES);
-            log_syscall(getpid(), "write");
-            (*total_syscalls)++;
-            (*syscall_count)[2]++;
-        }
-    }
-    close(fd);
-    exit(0);
 }
 
 int main() {
@@ -102,7 +61,11 @@ int main() {
     pid_t pids[2];
     for (int i = 0; i < 2; ++i) {
         if ((pids[i] = fork()) == 0) {
-            child_process(i);
+            char id_str[10];
+            snprintf(id_str, sizeof(id_str), "%d", i);
+            execl("./child", "./child", id_str, NULL);  // Ejecutar el código del hijo
+            perror("exec failed");
+            exit(1);
         }
     }
 
