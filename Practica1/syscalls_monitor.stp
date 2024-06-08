@@ -1,13 +1,32 @@
-global syscalls;
+#!/usr/bin/stap
 
-probe syscall.* {
-    if (pid() == target() || pid() == target2()) {
-        syscalls[execname(), pid(), name] <<< 1;
-    }
+probe begin {
+    printf("Monitoreando\n");
 }
 
-probe end {
-    foreach ([execname, pid, name] in syscalls) {
-        printf("%s(%d) called %s %d times\n", execname, pid, name, @count(syscalls[execname, pid, name]));
+probe syscall.read {
+  
+    if(pid() == $1 || pid() == $2){
+        printf("Proceso hijo PID[%d] %s -> Read\n", pid(), execname());
     }
+    
+    
+}
+
+probe syscall.write {
+   
+    if(pid() == $1 || pid() == $2){
+        printf("Proceso hijo PID[%d] %s -> Write\n", pid(), execname());
+    }
+    
+    
+}
+
+probe syscall.open {
+   
+    if(pid() == $1 || pid() == $2){
+        printf("Proceso hijo PID[%d] %s -> Open\n", pid(), execname());
+    }
+    
+    
 }

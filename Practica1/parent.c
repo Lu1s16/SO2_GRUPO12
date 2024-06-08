@@ -59,8 +59,10 @@ int main() {
     (*syscall_count)[2] = 0;
 
     pid_t pids[2];
+    
     for (int i = 0; i < 2; ++i) {
         if ((pids[i] = fork()) == 0) {
+            
             char id_str[10];
             snprintf(id_str, sizeof(id_str), "%d", i);
             execl("./child", "./child", id_str, NULL);  // Ejecutar el código del hijo
@@ -68,6 +70,28 @@ int main() {
             exit(1);
         }
     }
+
+     // Ejecuta el script SystemTap desde el proceso padre
+            const char *script = "syscalls_monitor.stp";
+            int pid1 = pids[0];
+            char param1[16];
+            snprintf(param1, sizeof(param1), "%d", pid1);
+            printf("  pid: %s\n", param1);
+        
+            int pid2 = pids[1];
+            char param2[16];
+            snprintf(param2, sizeof(param2), "%d", pid2);
+            printf("  pid: %s\n", param2);
+        
+            char command[256];
+            snprintf(command, sizeof(command), "sudo stap %s %s %s", script, param1, param2);
+            int result = system(command);
+            if (result == -1) {
+                perror("Error ejecutando el comando");
+                return 1;
+            } else {
+                printf("Script ejecutado con éxito\n");
+            }
 
     while (!stop) {
         sleep(1);
