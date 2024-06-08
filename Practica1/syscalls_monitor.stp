@@ -1,0 +1,13 @@
+global syscalls;
+
+probe syscall.* {
+    if (pid() == target() || pid() == target2()) {
+        syscalls[execname(), pid(), name] <<< 1;
+    }
+}
+
+probe end {
+    foreach ([execname, pid, name] in syscalls) {
+        printf("%s(%d) called %s %d times\n", execname, pid, name, @count(syscalls[execname, pid, name]));
+    }
+}
