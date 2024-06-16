@@ -1,0 +1,15 @@
+Fecha: 2024_06_16  11:00:49 
+==========================Carga de Usuarios=================================== 
+Hilo #1 = 29
+Hilo #2 = 30
+Hilo #3 = 30
+Total = 94
+Error en la línea 42: La cuenta esta duplicada;  No. Cuenta: 9439
+Error en la línea 62: La cuenta esta duplicada;  No. Cuenta: 3959
+Error en la línea 63: El saldo es negativo;  No. Cuenta: 1002
+Error en la línea 64: La cuenta esta duplicada;  No. Cuenta: 6051
+Error en la línea 65: El saldo es negativo;  No. Cuenta: 6051
+Error en la línea 85: El saldo es negativo;  No. Cuenta: 4483
+Error en la línea 1: La cuenta esta duplicada;  No. Cuenta: 5877
+Error en la línea 4: La cuenta esta duplicada;  No. Cuenta: 2096
+Error en la línea 28: El saldo es negativo;  No. Cuenta: 5006

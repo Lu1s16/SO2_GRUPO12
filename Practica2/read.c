@@ -46,6 +46,7 @@ int total_errores_carga_usuarios = 0;
 int errores_cuenta_duplicada = 0;
 int errores_saldo_no_real = 0;
 int errores_cuenta_no_entero = 0;
+
 //usuarios procesados por hilo
 int usuarios_procesados[3] = {0}; 
 
@@ -217,6 +218,14 @@ void write_error_report() {
     fprintf(file, "Fecha: %04d_%02d_%02d  %02d:%02d:%02d \n",tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
              tm.tm_hour, tm.tm_min, tm.tm_sec);
     fprintf(file, "==========================Carga de Usuarios=================================== \n"); 
+    for (int i = 0; i < 3; i++) {
+        fprintf(file, "Hilo #%d = %d\n", i + 1, usuarios_procesados[i]);
+    }
+    int suma_total = 0;
+    for (int i = 0; i < 3; i++) {
+        suma_total += usuarios_procesados[i];
+    }
+    fprintf(file, "Total = %d\n", suma_total);
     for (int i = 0; i < total_errores_carga_usuarios; i++) {
         fprintf(file, "Error en la línea %d: %s No. Cuenta: %d\n", errores_carga_usuarios_arr[i].linea, errores_carga_usuarios_arr[i].mensaje, errores_carga_usuarios_arr[i].no_cuenta_duplicada);
     }
