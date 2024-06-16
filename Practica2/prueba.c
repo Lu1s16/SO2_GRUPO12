@@ -3,7 +3,6 @@
 #include "cJSON.h"
 #include <string.h>
 #include <time.h>
-#include <ctype.h>
 //hilos
 #include<pthread.h>
 #include<unistd.h>
@@ -47,26 +46,13 @@ int total_errores_carga_usuarios = 0;
 int errores_cuenta_duplicada = 0;
 int errores_saldo_no_real = 0;
 int errores_cuenta_no_entero = 0;
+
 //usuarios procesados por hilo
 int usuarios_procesados[3] = {0}; 
 
 pthread_mutex_t usuarios_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t errores_mutex = PTHREAD_MUTEX_INITIALIZER;
-typedef struct {
-    int linea;
-    char mensaje[256];
-    // Nuevo campo para almacenar el número de cuenta duplicado
-    int no_cuenta; 
-} errorcargaproc;
 
-//Variables globales para operaciones
-errorcargaproc errores_carga_procesos_arr[1000];
-int totalproc = 0;
-int total_errores_carga_procesos = 0;
-int total_retiros = 0;
-int total_transferencias = 0;
-int total_depositos = 0;
-int procesos_procesados[4] = {0};
 
 // Estructura para las operaciones
 struct operaciones {
@@ -77,6 +63,17 @@ struct operaciones {
 };
 struct operaciones transacciones[1000];
 int operaciones_size = 0;
+
+typedef struct {
+    int linea;
+    char mensaje[256];
+    int cuenta 
+} errorcargaproc
+
+errorcargaproc errores_carga_procesos_arr[1000]
+
+//Variables globales
+
 
 // ************  Funciones usuarios ***************
 
@@ -90,16 +87,6 @@ void escribirError(const char *mensaje, int linea, int no_cuenta_duplicada) {
         total_errores_carga_usuarios++;
     }
    
-}
-
-void escribirErrorProc(const char *mensaje, int linea, int no_cuenta) {
-    if (total_errores_carga_procesos < 1000) {
-        errores_carga_procesos_arr[total_errores_carga_procesos].linea = linea;
-        errores_carga_procesos_arr[total_errores_carga_procesos].no_cuenta = no_cuenta;
-        snprintf(errores_carga_procesos_arr[total_errores_carga_procesos].mensaje, sizeof(errores_carga_procesos_arr[total_errores_carga_procesos].mensaje), "%s", mensaje);      
-        total_errores_carga_procesos++;
-
-    }
 }
 
 //Función para leer y procesar usuarios desde un archivo JSON
@@ -224,7 +211,6 @@ void print_json_object(char *json_string) {
 }
 
 //Escribir reporte errores usuarios 
-
 void write_error_report() {
      // Obtener la fecha y hora actual
     time_t t = time(NULL);
@@ -253,46 +239,6 @@ void write_error_report() {
     fprintf(file, "Total = %d\n", suma_total);
     for (int i = 0; i < total_errores_carga_usuarios; i++) {
         fprintf(file, "Error en la línea %d: %s No. Cuenta: %d\n", errores_carga_usuarios_arr[i].linea, errores_carga_usuarios_arr[i].mensaje, errores_carga_usuarios_arr[i].no_cuenta_duplicada);
-    }
-    fclose(file);
-}
-
-//Escribir reporte de errores procesos
-void write_error_report_procesos() {
-     // Obtener la fecha y hora actual
-    time_t t = time(NULL);
-    struct tm tm = *localtime(&t);
-
-    // Formatear la fecha y hora para el nombre del archivo
-    char filename[256];
-    snprintf(filename, sizeof(filename), "operaciones_%04d_%02d_%02d-%02d_%02d_%02d.log",
-             tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-             tm.tm_hour, tm.tm_min, tm.tm_sec);
-    FILE *file = fopen(filename, "wb");
-    if (file == NULL) {
-        perror("Open file");
-        return;
-    }
-    fprintf(file, "Fecha: %04d_%02d_%02d  %02d:%02d:%02d \n",tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-             tm.tm_hour, tm.tm_min, tm.tm_sec);
-    fprintf(file, "==========================Carga de Procesos=================================== \n"); 
-    for (int i = 0; i < 4; i++) {
-        fprintf(file, "Hilo #%d = %d\n", i + 1, procesos_procesados[i]);
-    }
-    int suma_total = 0;
-    for (int i = 0; i < 4; i++) {
-        suma_total += procesos_procesados[i];
-    }
-    fprintf(file, "Total = %d\n", suma_total);
-
-    fprintf(file, "\nOperaciones realizadas\n");
-    fprintf(file, "Retiros: %d\n", total_retiros);
-    fprintf(file, "Depositos: %d\n", total_depositos);
-    fprintf(file, "Transferencia: %d\n", total_transferencias);
-    fprintf(file, "Total: %d\n", totalproc);
-
-    for (int i = 0; i < total_errores_carga_procesos; i++) {
-        fprintf(file, "Error en la línea %d: %s No. Cuenta: %d\n", errores_carga_procesos_arr[i].linea, errores_carga_procesos_arr[i].mensaje, errores_carga_procesos_arr[i].no_cuenta);
     }
     fclose(file);
 }
@@ -498,21 +444,7 @@ char* struct_to_json() {
     return formatted;
 }
 
-int is_number(const char *str) {
-    if (*str == '\0' || isspace(*str)) {
-        return 0;
-    }
 
-    char *end;
-    strtod(str, &end);
-
-    // Check if the entire string was converted
-    if (*end != '\0') {
-        return 0;
-    }
-
-    return 1;
-}
 
 /// Ejecucion de transacciones  ------
 void *procesarTransaccion(void *args) {
@@ -523,194 +455,29 @@ void *procesarTransaccion(void *args) {
     int errores_identificados_operacion_no_existe = 0;
 
     for (int i = inicio_index; i < fin_index; i++) {
-        struct operaciones transaccion_actual = transacciones[i];
+        struct operaciones transaccion = transacciones[i];
 
         //Procesar la transaccion
         pthread_mutex_lock(&lock);
-        char causa_error[500] = "";
-        int error = 0;
-        int continuar = 1;
-        char str[50]; 
-        
-        switch (transaccion_actual.operacion)
+        switch (transaccion.operacion)
         {
             case 1:
                 //Deposito
                 printf("Operacion deposito\n");
-                //Validar monto
-                
-                if(transaccion_actual.monto <= 0) {
-                    snprintf(causa_error, sizeof(causa_error), "Monto invalido; ");
-                    error = 1;
-                    continuar = 0;
-                
-                }
-             
-                // Convertir el número double a una cadena
-                sprintf(str, "%f", transaccion_actual.monto);
-
-                if (is_number(str) == 0) {
-                    snprintf(causa_error, sizeof(causa_error), "El monto no es un numero valido; ");
-                    error = 1;
-                    continuar = 0;
-                    
-                }
-
-                if(continuar){
-                    int existe = 0;
-
-                    for(int i = 0; i < totalusua; i++) {
-                        if (usuarios[i].no_cuenta == transaccion_actual.cuenta1) {
-                            usuarios[i].saldo += transaccion_actual.monto;
-                            existe = 1;
-                            total_depositos+=1;
-                            totalproc+=1;
-                            break;
-
-                        }
-                    }
-
-                    if(existe == 0) {
-                        snprintf(causa_error, sizeof(causa_error), "No existe la cuenta; ");
-                        error = 1;
-                    }
-
-                }
-
-    
-                procesos_procesados[hilo_id]++;
-
                 break;
             case 2:
                 //Retiro
                 printf("Operacion retiro\n");
-                //Validar monto
-                
-                if(transaccion_actual.monto <= 0) {
-                    snprintf(causa_error, sizeof(causa_error), "Monto negativo; ");
-                    continuar = 0;
-                    error = 1;
-                    
-                }
-                
-                // Convertir el número double a una cadena
-                sprintf(str, "%f", transaccion_actual.monto);
-
-                if (is_number(str) == 0) {
-                    snprintf(causa_error, sizeof(causa_error), "El monto no es un numero valido; ");
-                    continuar = 0;
-                    error = 1;
-                    
-                }
-                if(continuar){
-                    int existe = 0;
-
-                    for (int i = 0; i < totalusua; i++) {
-                    
-                        if (usuarios[i].no_cuenta == transaccion_actual.cuenta1) {
-                            if(usuarios[i].saldo >= transaccion_actual.monto) {
-                                existe = 1;
-                                usuarios[i].saldo -= transaccion_actual.monto;
-                                total_retiros+=1;
-                                totalproc+=1;
-                            } else {
-                                //marcar error
-                                error = 1;
-                                snprintf(causa_error, sizeof(causa_error), "Saldo insuficiente para retiro; ");
-                            }
-                        
-                        }
-                    }
-                    if(existe == 0) {
-                        error = 1;
-                        snprintf(causa_error, sizeof(causa_error), "No existe la cuenta; ");
-                    }
-                
-                }
-                procesos_procesados[hilo_id]++;
                 break;
             case 3:
                 //Transferencia
                 printf("Operacion transferencia\n");
-                //Validar monto
-                
-                if(transaccion_actual.monto <= 0) {
-                    snprintf(causa_error, sizeof(causa_error), "Monto negativo; ");
-                    continuar = 0;
-                    error = 1;
-                }
-
-                
-                // Convertir el número double a una cadena
-                sprintf(str, "%f", transaccion_actual.monto);
-
-                
-                if (is_number(str) == 0) {
-                    snprintf(causa_error, sizeof(causa_error), "El monto no es un numero valido; ");
-                    continuar = 0;
-                    error = 1;
-                }
-
-                if(continuar){
-                    int i, j;
-                    for (i = 0; i < totalusua; i++) {
-                        if(usuarios[i].no_cuenta == transaccion_actual.cuenta1) {
-                            break;
-                        }
-                     
-                    }
-                    for (j = 0; j < totalusua; j++) {
-                        if(usuarios[j].no_cuenta == transaccion_actual.cuenta2) {
-                            break;
-                        }
-                    }
-                
-                    if(i == totalusua) {
-                        snprintf(causa_error, sizeof(causa_error), "No existe la cuenta1 ; ");
-                        break;
-                        
-                    }
-                    if(j == totalusua) {
-                        snprintf(causa_error, sizeof(causa_error), "NO existe la cuenta 2; ");
-                        error = 1;
-                        break;
-                        //marcar error de que no existe la cuenta
-                    }
-
-                    if (usuarios[i].saldo >= transaccion_actual.monto)
-                    {
-                        usuarios[i].saldo -= transaccion_actual.monto;
-                        usuarios[j].saldo += transaccion_actual.monto;
-                        total_transferencias+=1;
-                        totalproc+=1;
-                    
-                    }
-                    else
-                    {
-                        snprintf(causa_error, sizeof(causa_error), "Saldo insuficiente; ");
-                        error = 1;
-                    }
-
-                }
-
-                
-                procesos_procesados[hilo_id]++;
                 break;
             default:
-                snprintf(causa_error, sizeof(causa_error), "Operacion desconocida; ");
-                error = 1;
-        }
-        
-
-        if(error) {
-        
-            
-            escribirErrorProc(causa_error, i + 1, transaccion_actual.cuenta1);
-            
+                printf("Error: Operacion desconocida en la linea %d\n", i + 1);
+                errores_identificados_operacion_no_existe++;
         }
         pthread_mutex_unlock(&lock);
-
-        
     }
     pthread_exit(NULL);
 
@@ -991,9 +758,16 @@ int main() {
         case 5:
             // Cargar operaciones desde archivo
             cargarTransacciones();
-            write_error_report_procesos();
+            for (int i = 0; i < operaciones_size; i++) {
+                printf("Id: %d   Cuenta1: %d   Cuenta2: %d   Monto: %f\n", 
+                transacciones[i].operacion, transacciones[i].cuenta1, transacciones[i].cuenta2, transacciones[i].monto);
+            }
 
-            
+            char* new_json = struct_to_json();
+            if (new_json != NULL) {
+                write_file("my_json.json", new_json);
+                free(new_json); // Liberar memoria asignada por cJSON_Print
+            }
             break;
         case 6:
             //Funcion reporte
