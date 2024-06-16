@@ -24,8 +24,19 @@ typedef struct {
 typedef struct {
     int linea;
     char mensaje[256];
-    int no_cuenta_duplicada; // Nuevo campo para almacenar el número de cuenta duplicado
+    // Nuevo campo para almacenar el número de cuenta duplicado
+    int no_cuenta_duplicada; 
 } errorcargausua;
+
+// Estructura para representar una operación bancaria
+typedef struct
+{
+    // 1: Depósito, 2: Retiro, 3: Transferencia
+    int tipo_operacion; 
+    int cuenta_origen;
+    int cuenta_destino;
+    double monto;
+} Operacion;
 
 // Variables globales para usuarios
 Usuario usuarios[maximousua];
@@ -35,7 +46,8 @@ int total_errores_carga_usuarios = 0;
 int errores_cuenta_duplicada = 0;
 int errores_saldo_no_real = 0;
 int errores_cuenta_no_entero = 0;
-int usuarios_procesados[3] = {0}; //usuarios procesados por hilo
+//usuarios procesados por hilo
+int usuarios_procesados[3] = {0}; 
 
 pthread_mutex_t usuarios_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t errores_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -163,7 +175,6 @@ char* struct_to_json_user() {
         cJSON_AddNumberToObject(item, "saldo", usuarios[i].saldo);
         cJSON_AddItemToArray(json_array, item);
     }
-
     char* formatted = cJSON_Print(json_array);
     cJSON_Delete(json_array);
     return formatted;
@@ -188,13 +199,24 @@ void print_json_object(char *json_string) {
 }
 
 //Escribir reporte errores usuarios 
-void write_error_report(char* filename) {
+void write_error_report() {
+     // Obtener la fecha y hora actual
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+
+    // Formatear la fecha y hora para el nombre del archivo
+    char filename[256];
+    snprintf(filename, sizeof(filename), "carga_%04d_%02d_%02d-%02d_%02d_%02d.log",
+             tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+             tm.tm_hour, tm.tm_min, tm.tm_sec);
     FILE *file = fopen(filename, "wb");
     if (file == NULL) {
         perror("Open file");
         return;
     }
-
+    fprintf(file, "Fecha: %04d_%02d_%02d  %02d:%02d:%02d \n",tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+             tm.tm_hour, tm.tm_min, tm.tm_sec);
+    fprintf(file, "==========================Carga de Usuarios=================================== \n"); 
     for (int i = 0; i < total_errores_carga_usuarios; i++) {
         fprintf(file, "Error en la línea %d: %s No. Cuenta: %d\n", errores_carga_usuarios_arr[i].linea, errores_carga_usuarios_arr[i].mensaje, errores_carga_usuarios_arr[i].no_cuenta_duplicada);
     }
@@ -242,8 +264,10 @@ void *procesarUsuarios(void *args) {
 
                 // Eliminar el usuario duplicado
                 eliminarElemento(usuarios, &totalusua, j);
-                i--; // Ajustar índice para verificar el mismo índice de nuevo
-                end_index--; // Ajustar el final del índice para reflejar el cambio en el tamaño del array
+                // Ajustar índice para verificar el mismo índice de nuevo
+                i--; 
+                // Ajustar el final del índice para reflejar el cambio en el tamaño del array
+                end_index--; 
                 break;
                 break;
             }
@@ -489,6 +513,180 @@ void write_file(char* filename, char* data) {
     fwrite(data, 1, strlen(data), file);
     fclose(file);
 }
+
+void FuncionDepo(){
+    int nocuenta;
+    double monto;
+    int validar;
+    printf("=======BIENVENIDO A LA FUNCION DEPOSITO=====\n");
+    printf("Ingrese el no. de cuenta: ");
+    scanf("%d", &nocuenta);
+    printf("Ingrese el monto a depositar: ");
+    validar = scanf("%lf", &monto);
+    while (validar != 1 || monto <= 0) {
+        while (getchar() != '\n'); // Limpiar el buffer de entrada
+        printf("Monto inválido. Ingrese un monto válido mayor que 0: ");
+        validar = scanf("%lf", &monto);
+    }
+    for (int i = 0; i < totalusua; i++){
+        if (usuarios[i].no_cuenta == nocuenta)
+        {
+            pthread_mutex_lock(&usuarios_mutex);
+            usuarios[i].saldo += monto;
+            printf("Se realizo correctamente el deposito de %.2f a la cuenta %d\n", monto, nocuenta);
+            pthread_mutex_unlock(&usuarios_mutex);
+            return;
+        }
+    }
+    printf("Error: No existe la cuenta %d\n", nocuenta);
+}
+
+void FuncionRetiro(){
+    int nocuenta;
+    double monto;
+    int validar;
+    printf("=======BIENVENIDO A LA FUNCION RETIRO=====\n");
+    printf("Ingrese el no. de cuenta: ");
+    scanf("%d", &nocuenta);
+    printf("Ingrese el monto a retirar: ");
+    validar = scanf("%lf", &monto);
+    while (validar != 1 || monto <= 0) {
+        while (getchar() != '\n'); // Limpiar el buffer de entrada
+        printf("Monto inválido. Ingrese un monto válido mayor que 0: ");
+        validar = scanf("%lf", &monto);
+    }
+    for (int i = 0; i < totalusua; i++){
+        if (usuarios[i].no_cuenta == nocuenta)
+        {
+            pthread_mutex_lock(&usuarios_mutex);
+            if (usuarios[i].saldo >= monto)
+            {
+                usuarios[i].saldo -= monto;
+                printf("Se realizo correctamente el retiro de %.2f en la cuenta %d\n", monto, nocuenta);
+            }
+            else
+            {
+                printf("Error: No se puede realizar el retiro por saldo insuficiente en la cuenta %d\n", nocuenta);
+            }
+            pthread_mutex_unlock(&usuarios_mutex);
+            return;
+        }
+    }
+    printf("Error: No existe la cuenta %d\n", nocuenta);
+}
+
+void FuncionTransa(){
+    int nocuentade;
+    int nocuentapa;
+    double monto;
+    int validar;
+    printf("=======BIENVENIDO A LA FUNCION TRANSACCION=====\n");
+    printf("Ingrese el no. de cuenta a debitar: ");
+    scanf("%d", &nocuentade);
+    printf("Ingrese el no. de cuenta a depositar: ");
+    scanf("%d", &nocuentapa);
+    printf("Ingrese el monto a depositar: ");
+    validar = scanf("%lf", &monto);
+    while (validar != 1 || monto <= 0) {
+        while (getchar() != '\n'); // Limpiar el buffer de entrada
+        printf("Monto inválido. Ingrese un monto válido mayor que 0: ");
+        validar = scanf("%lf", &monto);
+    }
+    int i, j;
+    for (i = 0; i < totalusua; i++)
+    {
+        if (usuarios[i].no_cuenta == nocuentade)
+            break;
+    }
+    for (j = 0; j < totalusua; j++)
+    {
+        if (usuarios[j].no_cuenta == nocuentapa)
+            break;
+    }
+
+    if (i == totalusua)
+    {
+        printf("Error: No existe la cuenta a debitar %d\n", nocuentade);
+        return;
+    }
+    if (j == totalusua)
+    {
+        printf("Error: No existe la cuenta a depositar %d\n", nocuentapa);
+        return;
+    }
+
+    pthread_mutex_lock(&usuarios_mutex);
+    if (usuarios[i].saldo >= monto)
+    {
+        usuarios[i].saldo -= monto;
+        usuarios[j].saldo += monto;
+        printf("Se realizo correctamente la transaccion de %.2f de la cuenta %d a la cuenta %d\n", monto, nocuentade, nocuentapa);
+    }
+    else
+    {
+        printf("Error: No se puede realizar la transaccion porque el saldo es insuficiente en la cuenta %d\n", nocuentade);
+    }
+    pthread_mutex_unlock(&usuarios_mutex);
+}
+
+void FuncionConsul(){
+    int nocuenta;
+    printf("=======BIENVENIDO A LA FUNCION CONSULTAR CUENTA =====\n");
+    printf("Ingrese el no. de cuenta: ");
+    scanf("%d", &nocuenta);
+    for (int i = 0; i < totalusua; i++)
+    {
+        if (usuarios[i].no_cuenta == nocuenta)
+        {
+            printf("======================\n");
+            printf("cuenta %d:\n", nocuenta);
+            printf("nombre: %s\n", usuarios[i].nombre);
+            printf("saldo: %.2f\n", usuarios[i].saldo);
+            printf("======================\n");
+            return;
+        }
+    }
+    printf("Error: No existe la cuenta %d\n", nocuenta);
+}
+
+void Reportes(){
+    //Menu Reportes
+    int opcion;
+    do
+    {
+        printf("\nMenu Reportes:\n");
+        printf("1. Estado de cuentas\n");
+        printf("2. Carga usuarios\n");
+        printf("3. Carga de operaciones masivas\n");
+        printf("4. Salir\n");
+        printf("Seleccione una opción: ");
+        scanf("%d", &opcion);
+
+        switch (opcion)
+        {
+        case 1:
+            //Estado de cuentas
+            char* users_json = struct_to_json_user();
+            write_file("usuarios_salida.json", users_json);
+            free(users_json);
+            break;
+        case 2:
+            //Reporte carga de usuarios
+            break;
+        case 3:
+            //Reporte carga de operaciones masivas
+            break;
+        case 4:
+            //Salir menu reportes
+            printf("Menu reportes terminado\n");
+            break;
+        default:
+            printf("Opción inválida\n");
+        }
+    } while (opcion != 4);
+
+}
+
 int main() {
 
     //Carga de usuarios
@@ -500,18 +698,12 @@ int main() {
     read_json_file(filename);
     cargarUsuarios();
 
-    char* users_json = struct_to_json_user();
-    write_file("usuarios_salida.json", users_json);
-    free(users_json);
-
-    
-    write_error_report("errores.log");
+   
+    write_error_report();
 
     //Menu principal
     int opcion;
-    int num_cuenta;
-    double monto;
-    int num_cuenta_destino;
+    
     do
     {
         printf("\nMenu Principal:\n");
@@ -529,15 +721,19 @@ int main() {
         {
         case 1:
             //Funcion para deposito
+            FuncionDepo();
             break;
         case 2:
             //Funcion para retiro
+            FuncionRetiro();
             break;
         case 3:
             //Funcion para transaccion
+            FuncionTransa();
             break;
         case 4:
             //Funcion para consultar cuenta
+            FuncionConsul();
             break;
         case 5:
             // Cargar operaciones desde archivo
@@ -555,22 +751,14 @@ int main() {
             break;
         case 6:
             //Funcion reporte
+            Reportes();
             break;
         case 7:
-            printf("Programa terminado\n");
+            printf("Hasta Pronto!!!\n");
             break;
         default:
             printf("Opción inválida\n");
         }
     } while (opcion != 7);
-
-    
-
-   
-
-    
-
-    
-
     return 0;
 }
