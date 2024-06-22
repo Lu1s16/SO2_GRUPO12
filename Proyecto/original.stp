@@ -1,0 +1,36 @@
+
+probe begin {
+    printf("Iniciando el monitoreo de mmap y munmap...\n")
+  
+}
+
+probe syscall.mmap2 {
+    printf( "MMAP, %d, %s, %p, %u, [%s]\n", pid(), execname(), start, length, ctime(gettimeofday_s()) )
+    #printf("Llamada a mmap con el proceso -> %d\n",  pid())
+    #printf("Nombre del proceso: %s\n", execname())
+   
+    #printf("Direccion inicial: %p\n", start)
+    #printf("Longitud de mapeo: %u\n", length)
+    #printf("Fecha y hora[%s]\n", ctime(gettimeofday_s()))
+   
+}
+
+
+
+
+probe syscall.munmap {
+    printf( "MUNMAP, %d, %s, %p, %u, [%s]\n", pid(), execname(), start, length, ctime(gettimeofday_s()) )
+    #printf("Llamada a munmap con el proceso -> %d\n",  pid())
+    #printf("Nombre del proceso: %s\n", execname())
+    #printf("Direccion inicial: %p\n", start)
+    #printf("Longitud de mapeo: %u\n", length)
+    #printf("Fecha y hora[%s]\n", ctime(gettimeofday_s()))
+    
+    
+}
+
+
+
+probe end {
+    printf("Terminando el monitoreo de mmap y munmap.\n")
+}
