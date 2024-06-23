@@ -5,23 +5,144 @@ import { Chart as ChartJS, ArcElement, registerables } from 'chart.js';
 
 ChartJS.register(...registerables);
 //CON ESTA DIRECCION GUIATE
-const API_URL_RAM = 'http://192.168.11.129:8080/datos';
+const API_URL_RAM = 'http://192.168.217.129:8080/datos';
+const MEMORIA = 3968880000
 
 
 function App() {
-  const [data, setData] = useState({
-    freeRam: null,
-    cpuInfo: null,
-  });
-  const [chartDatahis, setChartDatahis] = useState({});
-  const [chartDatahiscp, setChartDatahiscp] = useState({});
+  
+  
+  const [Tabla, setTabla] = useState([]);
+  const [Solicitudes, setSolicitudes] = useState([]);
+  const [listaLabels, setDatosLabel] = useState([]);
+  const [listaValues, setDatosValues] = useState([])
+
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 10;
+
+  const [currentPage2, setCurrentPage2] = useState(0);
+  const itemsPerPage2 = 10;
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const responseRam = await fetch(API_URL_RAM);
         if (responseRam.ok) {
-          const dataRam = await responseRam.json();
+          const data = await responseRam.json();
+          
+          //Guarda todos los procesos sin agruparlos
+          const listaProcesos = []
+
+          for (const objeto of data) {
+              const nuevoObjeto = {
+                  Pid: objeto.Pid,
+                  Nombre: objeto.Nombre.trim(),
+                  Llamada: objeto.Llamada,
+                  Tamanio: objeto.Tamanio,
+                  FechayHora: objeto.FechayHora.trim() 
+              }
+              listaProcesos.push(nuevoObjeto)
+          }
+          setSolicitudes(listaProcesos)
+
+          
+          //Obtener datos agrupados para la memoria y porcentaje
+          const groupedData = listaProcesos.reduce((acc, item) => {
+          const key = `${item.Pid}-${item.Nombre}`;
+          if (!acc[key]) {
+              acc[key] = [];
+            }
+            acc[key].push(item);
+            return acc
+            
+          }, {});
+
+          //lista que almacena los procesos agrupados y guarda el pid, nombre, memoria y porcentaje
+          const procesosAgrupados = []
+          
+          for (const key in groupedData) {
+            if (groupedData.hasOwnProperty(key)) {
+              let suma_mmap = 0;
+              let suma_munmap = 0;
+              let nombre = ""
+              let pid = ""
+              let memoria = 0
+              let porcentaje = 0
+              
+
+              //console.log(groupedData[key])
+              for (const c in groupedData[key]) {
+                nombre = groupedData[key][c].Nombre
+                pid = groupedData[key][c].Pid.toString()
+
+                //console.log(groupedData[key][c].Tamanio)
+                let llamada = groupedData[key][c].Llamada
+                if(llamada == "MMAP") {
+                  suma_mmap+=groupedData[key][c].Tamanio
+
+                } else {
+                  suma_munmap+=groupedData[key][c].Tamanio
+
+                }
+                
+              
+              }
+              memoria = suma_mmap - suma_munmap
+              if(memoria < 0) {
+                memoria = 0
+              }
+              porcentaje = (memoria * 100)/MEMORIA;
+              const nuevoObjeto = {
+                  Pid: pid, 
+                  Nombre: nombre,
+                  Memoria: memoria,
+                  Porcentaje: porcentaje
+              
+              }
+              procesosAgrupados.push(nuevoObjeto)
+
+              
+              
+            }
+          }
+
+          
+
+          procesosAgrupados.sort((a, b) => b.Memoria - a.Memoria);
+
+          console.log(procesosAgrupados);
+          setTabla(procesosAgrupados)
+
+          //lista que almacena los primeros 10 con mayor porcentaje y otros
+          const listaTop = []
+          const listaNombresTop = []
+          
+          let porcentaje_otros = 0;
+          
+          for(const c in procesosAgrupados) {
+
+            if(c <= 9) {
+              const valor = procesosAgrupados[c].Porcentaje 
+              const nombre = procesosAgrupados[c].Nombre 
+              listaTop.push(valor)
+              listaNombresTop.push(nombre)
+
+            } else {
+              const valor = procesosAgrupados[c].Porcentaje 
+              porcentaje_otros+=valor 
+
+            }
+
+          }
+
+          listaTop.push(porcentaje_otros)
+          listaNombresTop.push("otros")
+          setDatosLabel(listaNombresTop)
+          setDatosValues(listaTop)
+
+
+          
+
         } else {
           throw new Error('Error HTTP RAM: ' + responseRam.status);
         }
@@ -33,69 +154,51 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
+  //obtener datos
+  
   
 
-  useEffect(() => {
-    const fetchChartDatacp = async () => {
-      try {
-        const response = await fetch('http://192.168.0.17:8080/tiempohis/cpu');
-        const data = await response.json();
-
-        const labels = data.histcpus.map(item => item.fech);
-        const dataValues = data.histcpus.map(item => item.histcpu);
-
-        setChartDatahiscp({
-          labels,
-          datasets: [
-            {
-              label: 'CPU Usado',
-              data: dataValues,
-              borderColor: 'orange',
-              backgroundColor: 'transparent',
-              pointBorderColor: 'orange',
-              pointBackgroundColor: 'rgba(255,150,0,0.5)',
-              pointRadius: 5,
-              pointHoverRadius: 10,
-              pointHitRadius: 30,
-              pointBorderWidth: 2,
-              pointStyle: 'rectRounded',
-            },
-          ],
-        });
-      } catch (error) {
-        console.error('Error fetching chart datacp:', error);
-      }
-    };
-    const interval = setInterval(fetchChartDatacp, 10000);
-    return () => clearInterval(interval);
-
-  }, []);
 
   const chartData = {
-    labels: ['Memoria libre', 'Memoria en uso'],
+    labels: listaLabels,
     datasets: [
       {
-        label: 'Memoria RAM',
-        data: [freeRam, useRam],
-        backgroundColor: ['#2ECC71', '#E74C3C'],
-        borderColor: ['#2ECC71', '#E74C3C'],
+        label: 'Porcentaje',
+        data: listaValues,
+        backgroundColor: ['#FF3333', '#FF8D33', "#FFEC33", "#7AFF33", "#33FF83", "#33E6FF", "#3352FF", "#9033FF", "#FF33EC"],
+        borderColor: ["black"],
         borderWidth: 1
       }
     ]
   };
 
-  const cpuChartData = {
-    labels: ['CPU libre', 'CPU en uso'],
-    datasets: [
-      {
-        label: 'CPU',
-        data: [cpuLibre, cpuEnUso],
-        backgroundColor: ['#2ECC71', '#E74C3C'],
-        borderColor: ['#2ECC71', '#E74C3C'],
-        borderWidth: 1
-      }
-    ]
+  //funciones de paginacion 1
+  
+  const handlePreviousPage = () => {
+    setCurrentPage(prevPage => Math.max(prevPage - 1, 0));
   };
+
+  const handleNextPage = () => {
+    setCurrentPage(prevPage => (prevPage + 1) * itemsPerPage < Tabla.length ? prevPage + 1 : prevPage);
+  };
+
+  const startIndex = currentPage * itemsPerPage;
+  const displayedData = Tabla.slice(startIndex, startIndex + itemsPerPage);
+
+  //funciones de paginacion 2
+
+  const handlePreviousPage2 = () => {
+    setCurrentPage2(prevPage => Math.max(prevPage - 1, 0));
+  };
+
+  const handleNextPage2 = () => {
+    setCurrentPage2(prevPage => (prevPage + 1) * itemsPerPage2 < Solicitudes.length ? prevPage + 1 : prevPage);
+  };
+
+  const startIndex2 = currentPage2 * itemsPerPage2;
+  const displayedData2 = Solicitudes.slice(startIndex2, startIndex2 + itemsPerPage2);
+
+
 
   return (
     <div className="App">
@@ -133,32 +236,32 @@ function App() {
               </div>
             </div>
             <div className="col-lg-6">
-              <div className="p-2">
+            <div className="p-2">
                 <table className="table table-striped">
                   <thead>
                     <tr>
                       <th scope="col">PID</th>
                       <th scope="col">Nombre</th>
-                      <th scope="col">Memoria</th>
-                      <th scope="col">Porcentaje Memoria</th>
+                      <th scope="col">Memoria (Bytes)</th>
+                      <th scope="col">Porcentaje</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td>RAM</td>
-                      <td>{freeRam} MB</td>
-                      <td>{useRam} MB</td>
-                      <td>{porcentajeUsado.toFixed(2)}%</td>
-                    </tr>
-                    <tr>
-                      <td>CPU</td>
-                      <td>{cpuLibre.toFixed(2)}%</td>
-                      <td>{cpuEnUso.toFixed(2)}%</td>
-                      <td>{(cpuUso ? (cpuUso / cpuInfo.cpuTotal * 100) : 0).toFixed(2)}%</td>
-                    </tr>
+                    {displayedData.map((item, index) => (
+                      <tr key={index}>
+                        <td>{item.Pid}</td>
+                        <td>{item.Nombre}</td>
+                        <td>{item.Memoria}</td>
+                        <td>{item.Porcentaje}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
-              </div>
+                <div className="pagination">
+                    <button onClick={handlePreviousPage} disabled={currentPage === 0}>Anterior</button>
+                    <button onClick={handleNextPage} disabled={(currentPage + 1) * itemsPerPage >= Tabla.length}>Siguiente</button>
+                </div>
+            </div>
             </div>
           </div>
         </div>
@@ -168,32 +271,32 @@ function App() {
           <div className="row gx-5 align-items-center">
             <h1><center>Solicitudes</center></h1>
             <div className="col-lg-6">
-              <div className="p-2">
-              <table className="table table-striped">
+            <div className="p-2">
+                <table className="table table-striped">
                   <thead>
                     <tr>
                       <th scope="col">PID</th>
                       <th scope="col">Llamada</th>
-                      <th scope="col">Tamaño</th>
+                      <th scope="col">Tamaño (MB)</th>
                       <th scope="col">Fecha</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td>RAM</td>
-                      <td>{freeRam} MB</td>
-                      <td>{useRam} MB</td>
-                      <td>{porcentajeUsado.toFixed(2)}%</td>
-                    </tr>
-                    <tr>
-                      <td>CPU</td>
-                      <td>{cpuLibre.toFixed(2)}%</td>
-                      <td>{cpuEnUso.toFixed(2)}%</td>
-                      <td>{(cpuUso ? (cpuUso / cpuInfo.cpuTotal * 100) : 0).toFixed(2)}%</td>
-                    </tr>
+                    {displayedData2.map((item, index) => (
+                      <tr key={index}>
+                        <td>{item.Pid}</td>
+                        <td>{item.Llamada}</td>
+                        <td>{item.Tamanio}</td>
+                        <td>{item.FechayHora}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
-              </div>
+                <div className="pagination">
+                    <button onClick={handlePreviousPage2} disabled={currentPage2 === 0}>Anterior</button>
+                    <button onClick={handleNextPage2} disabled={(currentPage2 + 1) * itemsPerPage2 >= Solicitudes.length}>Siguiente</button>
+                </div>
+            </div>
             </div>
 
           </div>

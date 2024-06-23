@@ -9,7 +9,7 @@ void insert_event(int pid, const char *nombre, const char *llamada, int tamanio,
     // Datos del password y database
     const char *server = "localhost";
     const char *user = "root";
-    const char *password = "root2000";
+    const char *password = "3045905330115";
     const char *database = "Proyecto";
 
     conn = mysql_init(NULL);

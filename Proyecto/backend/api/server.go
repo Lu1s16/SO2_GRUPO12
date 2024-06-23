@@ -2,7 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
+	//"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -11,7 +11,7 @@ import (
 )
 
 func getDatos(c *gin.Context) {
-	db, err := sql.Open("mysql", "root:root2000@tcp(localhost:3306)/Proyecto")  // Replace with your credentials
+	db, err := sql.Open("mysql", "root:3045905330115@tcp(localhost:3306)/Proyecto")  // Replace with your credentials
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -59,14 +59,14 @@ func getDatos(c *gin.Context) {
 	}
 
 	// Marshal the data slice into JSON bytes
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+	//jsonData, err := json.Marshal(data)
+	//if err != nil {
+	//	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	//	return
+	//}
 
 	// Return the data as JSON
-	c.JSON(http.StatusOK, jsonData)
+	c.JSON(http.StatusOK, data)
 }
 
 func main() {
