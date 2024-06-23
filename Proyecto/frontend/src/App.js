@@ -4,9 +4,9 @@ import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, registerables } from 'chart.js';
 
 ChartJS.register(...registerables);
+//CON ESTA DIRECCION GUIATE
+const API_URL_RAM = 'http://192.168.11.129:8080/datos';
 
-const API_URL_RAM = 'http://192.168.0.17:8080/tiempor/ram';
-const API_URL_CPU = 'http://192.168.0.17:8080/tiempor/cpu';
 
 function App() {
   const [data, setData] = useState({
@@ -22,16 +22,6 @@ function App() {
         const responseRam = await fetch(API_URL_RAM);
         if (responseRam.ok) {
           const dataRam = await responseRam.json();
-          const responseCpu = await fetch(API_URL_CPU);
-          if (responseCpu.ok) {
-            const dataCpu = await responseCpu.json();
-            setData({
-              freeRam: dataRam.freeRam,
-              cpuInfo: dataCpu,
-            });
-          } else {
-            throw new Error('Error HTTP CPU: ' + responseCpu.status);
-          }
         } else {
           throw new Error('Error HTTP RAM: ' + responseRam.status);
         }
@@ -43,41 +33,7 @@ function App() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    const fetchChartData = async () => {
-      try {
-        const response = await fetch('http://192.168.0.17:8080/tiempohis/ram');
-        const data = await response.json();
-
-        const labels = data.histrams.map(item => item.fech);
-        const dataValues = data.histrams.map(item => item.histram);
-
-        setChartDatahis({
-          labels,
-          datasets: [
-            {
-              label: 'RAM Usada',
-              data: dataValues,
-              borderColor: 'orange',
-              backgroundColor: 'transparent',
-              pointBorderColor: 'orange',
-              pointBackgroundColor: 'rgba(255,150,0,0.5)',
-              pointRadius: 5,
-              pointHoverRadius: 10,
-              pointHitRadius: 30,
-              pointBorderWidth: 2,
-              pointStyle: 'rectRounded',
-            },
-          ],
-        });
-      } catch (error) {
-        console.error('Error fetching chart data:', error);
-      }
-    };
-    const interval = setInterval(fetchChartData, 10000);
-    return () => clearInterval(interval);
-
-  }, []);
+  
 
   useEffect(() => {
     const fetchChartDatacp = async () => {
@@ -115,14 +71,6 @@ function App() {
 
   }, []);
 
-  const { freeRam, cpuInfo } = data;
-  const totalRam = 16000000;
-  const useRam = totalRam - freeRam;
-  const porcentajeUsado = ((totalRam - freeRam) / totalRam) * 100;
-  const cpuUso = cpuInfo?.cpuTotal - cpuInfo?.cpuPorcentaje;
-
-  const cpuLibre = cpuInfo ? 100 - (cpuInfo.cpu_porcentaje / cpuInfo.cpu_total * 100) : 0;
-  const cpuEnUso = cpuInfo ? (cpuInfo.cpu_porcentaje / cpuInfo.cpu_total * 100) : 0;
   const chartData = {
     labels: ['Memoria libre', 'Memoria en uso'],
     datasets: [

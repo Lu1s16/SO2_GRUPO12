@@ -1,5 +1,0 @@
-//Ejecutar codigo
-sudo stap original.stp | ./main
-//Compilar archivo c
-gcc main.c -o name -lmysqlclient
-

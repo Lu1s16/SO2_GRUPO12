@@ -1,0 +1,12 @@
+//Ejecutar codigo
+sudo stap original.stp | ./main
+//Compilar archivo c
+gcc main.c -o name -lmysqlclient
+
+//api
+go run server.go
+go get github.com/gin-gonic/gin
+go get github.com/go-sql-driver/mysql
+
+//react 
+npm start
