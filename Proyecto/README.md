@@ -20,7 +20,7 @@ Los datos que se recolecten por medio de estas llamadas se envian al codigo de C
 
 A continuacion se muestra una imagen del script que se utilizo
 
-![Script stp](/Imagenes/script.png)
+![Script stp](./Imagenes/script.png)
 
 ### Base de datos
 El programa en Go conecta a una base de datos MySQL llamada proyecto y escribe en una tabla llamada dashboards que tiene los campos pid que es int, nombre que es varchar(100), llamada que es varchar(100), tamanio que es int y fechayhora que es varchar(100). El programa debe leer las solicitudes del kernel, que incluyen el PID del proceso, el nombre del proceso, el tipo de llamada, el tamaño de memoria solicitado o liberado, y la fecha y hora de la solicitud. Luego, inserta esta información en la tabla dashboards, asegurando un registro preciso de las operaciones de memoria realizadas por los procesos del sistema.Además, se utiliza dbavear para monitorear y auditar el acceso y las operaciones en la base de datos, garantizando seguridad y eficiencia en la gestión de datos.
@@ -41,4 +41,4 @@ En las tablas se muestra mas informacion de las llamadas, como el numero de pid,
 
 A continuacion se muestran capturas de la aplicacion web.
 
-![Pagina web](/Imagenes/paginaWeb.png)
+![Pagina web](./Imagenes/paginaWeb.png)
